@@ -345,6 +345,14 @@ textarea.form-input{resize:vertical;min-height:60px;font-family:'Lora',serif;fon
 .rec-panel .ex{border-left:2px solid var(--snow)}
 .rec-panel .ex-name{color:var(--snow)}
 
+
+/* warmup block */
+.warmup-block{background:linear-gradient(135deg,rgba(74,136,56,.06) 0%,rgba(46,53,69,.4) 100%);border:1px solid rgba(74,136,56,.2);border-left:3px solid var(--sage);border-radius:3px;padding:12px 16px;margin-bottom:18px}
+.warmup-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--sage);margin-bottom:10px}
+.wu-row{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid rgba(74,136,56,.08);gap:12px}
+.wu-row:last-child{border-bottom:none}
+.wu-move{font-size:12.5px;color:var(--quartzite);line-height:1.4}
+.wu-vol{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);white-space:nowrap;flex-shrink:0}
 </style>
 
 <!-- ════════════════════════════════════════════════════ BODY ══ -->
@@ -777,6 +785,7 @@ textarea.form-input{resize:vertical;min-height:60px;font-family:'Lora',serif;fon
     <!-- OURAY PREP BW -->
     <div class="wk-phase-panel" id="bw-ouray">
       <div class="coach"><strong>Ouray Prep Strength Goal:</strong> Maintain full-body strength for a 30–60 lb camera pack at altitude. Pull-ups, push variations, and single-leg power are your pillars. No props needed — all movements are floor or wall based. Wednesday is your only strength day. Keep it honest and progressive.</div>
+      <div class="warmup-block"><div class="warmup-title">&#8679; Warm-Up &mdash; Ouray Prep / Bodyweight</div><div class="wu-row"><span class="wu-move">Leg Swing &mdash; front/back</span><span class="wu-vol">10 each leg</span></div><div class="wu-row"><span class="wu-move">Leg Swing &mdash; lateral</span><span class="wu-vol">10 each leg</span></div><div class="wu-row"><span class="wu-move">Hip Circle</span><span class="wu-vol">10 each direction</span></div><div class="wu-row"><span class="wu-move">Inchworm + Push-Up</span><span class="wu-vol">5 reps</span></div><div class="wu-row"><span class="wu-move">Squat to Stand + overhead reach</span><span class="wu-vol">8 reps</span></div><div class="wu-row"><span class="wu-move">Scapular Wall Slide</span><span class="wu-vol">10 reps</span></div><div class="wu-row"><span class="wu-move">Single-Leg Balance &mdash; eyes open</span><span class="wu-vol">20s each leg</span></div></div>
 
       <div class="ex-group">
         <div class="ex-group-title">A — Lower Body Power <span class="src-chip">Uphill Athlete + MTI Rob Shaul</span></div>
@@ -834,6 +843,7 @@ textarea.form-input{resize:vertical;min-height:60px;font-family:'Lora',serif;fon
     <!-- SUMMER BASE BW -->
     <div class="wk-phase-panel" id="bw-base" style="display:none">
       <div class="coach"><strong>Summer Base Strength:</strong> Modality shifts to MTB, trail running, hiking. Upper body focus sharpens for bike control and nordic poling power. Add explosive lower body work as the aerobic base builds. Single-leg stability finisher is non-negotiable every session.</div>
+      <div class="warmup-block"><div class="warmup-title">&#8679; Warm-Up &mdash; Summer Base / Bodyweight</div><div class="wu-row"><span class="wu-move">Leg Swing &mdash; front/back + lateral</span><span class="wu-vol">10 each</span></div><div class="wu-row"><span class="wu-move">Worlds Greatest Stretch</span><span class="wu-vol">5 each side</span></div><div class="wu-row"><span class="wu-move">Hip Circle + Glute Activation</span><span class="wu-vol">10 each direction</span></div><div class="wu-row"><span class="wu-move">Inchworm + Push-Up</span><span class="wu-vol">6 reps</span></div><div class="wu-row"><span class="wu-move">Band Pull-Apart or Arm Circle</span><span class="wu-vol">15 reps</span></div><div class="wu-row"><span class="wu-move">High Knees</span><span class="wu-vol">60 sec</span></div><div class="wu-row"><span class="wu-move">Single-Leg Balance &mdash; eyes closed</span><span class="wu-vol">20s each leg</span></div></div>
 
       <div class="ex-group">
         <div class="ex-group-title">A — Lower Body Power + Explosiveness <span class="src-chip">MTI + Uphill Athlete</span></div>
@@ -878,6 +888,7 @@ textarea.form-input{resize:vertical;min-height:60px;font-family:'Lora',serif;fon
     <!-- SUMMER BUILD BW -->
     <div class="wk-phase-panel" id="bw-build" style="display:none">
       <div class="coach"><strong>Build Phase BW:</strong> Power endurance replaces volume. Body is absorbing more cycling/trail stress. Cut main sets by 1, increase explosive intent. Upper body stays strong — bike handling and camera demands increase with terrain difficulty in summer.</div>
+      <div class="warmup-block"><div class="warmup-title">&#8679; Warm-Up &mdash; Summer Build / Bodyweight</div><div class="wu-row"><span class="wu-move">High Knees or Jump Rope</span><span class="wu-vol">90 sec</span></div><div class="wu-row"><span class="wu-move">Leg Swing &mdash; front/back + lateral</span><span class="wu-vol">10 each</span></div><div class="wu-row"><span class="wu-move">Hip Circle + Deep Lunge Hold</span><span class="wu-vol">5 each side</span></div><div class="wu-row"><span class="wu-move">Worlds Greatest Stretch</span><span class="wu-vol">5 each side</span></div><div class="wu-row"><span class="wu-move">Explosive Quarter Squat</span><span class="wu-vol">8 reps</span></div><div class="wu-row"><span class="wu-move">Band Pull-Apart</span><span class="wu-vol">15 reps</span></div><div class="wu-row"><span class="wu-move">Single-Leg Balance &mdash; eyes closed on pad</span><span class="wu-vol">20s each</span></div></div>
 
       <div class="ex-group">
         <div class="ex-group-title">A — Lower Body: Power + Plyometric <span class="src-chip">MTI + Jimmy Pritchard</span></div>
@@ -920,6 +931,7 @@ textarea.form-input{resize:vertical;min-height:60px;font-family:'Lora',serif;fon
     <!-- PEAK BW -->
     <div class="wk-phase-panel" id="bw-peak" style="display:none">
       <div class="coach"><strong>Peak Phase BW:</strong> Maintenance only. 2 sets per movement, intensity kept. Don't break down the legs before a big Saturday. Upper body and core hold their full volume — you need the camera control and bike handling for big event weekends.</div>
+      <div class="warmup-block"><div class="warmup-title">&#8679; Warm-Up &mdash; Peak Phase / Bodyweight</div><div class="wu-row"><span class="wu-move">High Knees</span><span class="wu-vol">45 sec</span></div><div class="wu-row"><span class="wu-move">Leg Swing &mdash; front/back + lateral</span><span class="wu-vol">8 each</span></div><div class="wu-row"><span class="wu-move">Hip Circle</span><span class="wu-vol">8 each direction</span></div><div class="wu-row"><span class="wu-move">Inchworm</span><span class="wu-vol">4 reps</span></div><div class="wu-row"><span class="wu-move">Arm Circle &mdash; forward/back</span><span class="wu-vol">10 each direction</span></div><div class="wu-row"><span class="wu-move">Single-Leg Balance</span><span class="wu-vol">15s each</span></div></div>
 
       <div class="ex-group">
         <div class="ex-group-title">Wednesday — Maintenance Session <span class="src-chip">Uphill Athlete · Taper Protocol</span></div>
@@ -943,6 +955,7 @@ textarea.form-input{resize:vertical;min-height:60px;font-family:'Lora',serif;fon
     <!-- SKI TRANSITION BW -->
     <div class="wk-phase-panel" id="bw-ski" style="display:none">
       <div class="coach"><strong>Ski Transition BW:</strong> This is the highest priority strength phase of the year. Max strength (5×3, heavy) for 4–6 weeks per Uphill Athlete, then muscular endurance. Upper body shifts hard toward poling power and shoulder resilience for a full ski season. Jimmy Pritchard: "you cannot get ski-fit by skiing alone."</div>
+      <div class="warmup-block"><div class="warmup-title">&#8679; Warm-Up &mdash; Ski Transition / Bodyweight</div><div class="wu-row"><span class="wu-move">Jumping Jacks or Jump Rope</span><span class="wu-vol">2 min</span></div><div class="wu-row"><span class="wu-move">Lateral Shuffle</span><span class="wu-vol">20m x 3</span></div><div class="wu-row"><span class="wu-move">Leg Swing &mdash; front/back + lateral</span><span class="wu-vol">12 each</span></div><div class="wu-row"><span class="wu-move">Hip Circle + Hip 90/90 Switch</span><span class="wu-vol">8 each direction</span></div><div class="wu-row"><span class="wu-move">Explosive Quarter Squat &mdash; bilateral then single-leg</span><span class="wu-vol">10 + 5 each</span></div><div class="wu-row"><span class="wu-move">Band Pull-Apart</span><span class="wu-vol">15 reps</span></div><div class="wu-row"><span class="wu-move">Single-Leg Balance &mdash; eyes closed on pad</span><span class="wu-vol">30s each</span></div></div>
 
       <div class="ex-group">
         <div class="ex-group-title">A — Max Strength Lower + Ski-Specific <span class="src-chip">Uphill Athlete · Max Strength + Jimmy Pritchard SSCV</span></div>
@@ -992,6 +1005,7 @@ textarea.form-input{resize:vertical;min-height:60px;font-family:'Lora',serif;fon
     <!-- OURAY GYM -->
     <div class="wk-phase-panel" id="gym-ouray">
       <div class="coach"><strong>Gym Version — Ouray Prep:</strong> Heavier loads, same movement intent. Strength-focused (3–6 reps, long rest, near-max), not hypertrophy. Back squat and single-leg RDL anchor the lower body. Pull-ups and press for upper body and camera work. Strength core, not pump core. Every session should feel like you lifted heavy, not like you got a sweat on.</div>
+      <div class="warmup-block"><div class="warmup-title">&#8679; Warm-Up &mdash; Ouray Prep / Gym</div><div class="wu-row"><span class="wu-move">Assault Bike or Row Erg</span><span class="wu-vol">3 min easy</span></div><div class="wu-row"><span class="wu-move">Leg Swing &mdash; front/back + lateral</span><span class="wu-vol">10 each leg</span></div><div class="wu-row"><span class="wu-move">Hip Circle</span><span class="wu-vol">10 each direction</span></div><div class="wu-row"><span class="wu-move">Goblet Squat (light, 3-sec pause)</span><span class="wu-vol">10 reps</span></div><div class="wu-row"><span class="wu-move">Band Pull-Apart</span><span class="wu-vol">15 reps</span></div><div class="wu-row"><span class="wu-move">Scapular Pull-Up</span><span class="wu-vol">8 reps</span></div><div class="wu-row"><span class="wu-move">Single-Leg Balance</span><span class="wu-vol">20s each</span></div></div>
 
       <div class="ex-group">
         <div class="ex-group-title">A — Primary Strength Compound Lower <span class="src-chip">Uphill Athlete · MTI Rob Shaul · Strength Not Hypertrophy</span></div>
@@ -1038,6 +1052,7 @@ textarea.form-input{resize:vertical;min-height:60px;font-family:'Lora',serif;fon
     <!-- GYM BASE -->
     <div class="wk-phase-panel" id="gym-base" style="display:none">
       <div class="coach"><strong>Summer Base Gym:</strong> Load increases weekly on all primary lifts. Track every session. Back squat and single-leg RDL build the posterior chain peak you'll carry into summer build. Upper body emphasizes pull-up volume and overhead work for nordic ski prep. Strength core maintains its full block.</div>
+      <div class="warmup-block"><div class="warmup-title">&#8679; Warm-Up &mdash; Summer Base / Gym</div><div class="wu-row"><span class="wu-move">Row Erg or Bike</span><span class="wu-vol">4 min Z1</span></div><div class="wu-row"><span class="wu-move">Leg Swing &mdash; front/back + lateral</span><span class="wu-vol">10 each</span></div><div class="wu-row"><span class="wu-move">Hip Circle + Worlds Greatest Stretch</span><span class="wu-vol">5 each side</span></div><div class="wu-row"><span class="wu-move">Goblet Squat &mdash; 3-sec eccentric</span><span class="wu-vol">8 reps</span></div><div class="wu-row"><span class="wu-move">Band Pull-Apart</span><span class="wu-vol">15 reps</span></div><div class="wu-row"><span class="wu-move">Lat Pulldown warm-up set (light)</span><span class="wu-vol">12 reps</span></div><div class="wu-row"><span class="wu-move">Jump Rope</span><span class="wu-vol">60 sec</span></div></div>
 
       <div class="ex-group">
         <div class="ex-group-title">A — Progressive Strength Lower <span class="src-chip">Uphill Athlete · MTI · Load Progression</span></div>
@@ -1084,6 +1099,7 @@ textarea.form-input{resize:vertical;min-height:60px;font-family:'Lora',serif;fon
     <!-- GYM BUILD -->
     <div class="wk-phase-panel" id="gym-build" style="display:none">
       <div class="coach"><strong>Build Phase Gym:</strong> Volume drops, intensity stays high. Cut sets on main lifts — body is absorbing more cycling and trail stress. Keep the movement patterns. Back squat drops to 3×3 heavy. Pull-up volume holds. Core maintains full block. Power endurance replaces pure strength reps.</div>
+      <div class="warmup-block"><div class="warmup-title">&#8679; Warm-Up &mdash; Summer Build / Gym</div><div class="wu-row"><span class="wu-move">Row Erg or Assault Bike</span><span class="wu-vol">4 min &mdash; last 30s hard</span></div><div class="wu-row"><span class="wu-move">Leg Swing &mdash; front/back + lateral</span><span class="wu-vol">10 each</span></div><div class="wu-row"><span class="wu-move">Hip Circle + Hip 90/90 Stretch</span><span class="wu-vol">8 each direction</span></div><div class="wu-row"><span class="wu-move">Goblet Squat &mdash; explosive</span><span class="wu-vol">6 reps</span></div><div class="wu-row"><span class="wu-move">Box Jump (low) &mdash; activation</span><span class="wu-vol">5 reps</span></div><div class="wu-row"><span class="wu-move">Band Pull-Apart</span><span class="wu-vol">15 reps</span></div><div class="wu-row"><span class="wu-move">Single-Leg Balance &mdash; BOSU</span><span class="wu-vol">20s each</span></div></div>
 
       <div class="ex-group">
         <div class="ex-group-title">Wednesday — Power Strength + Maintained Intensity <span class="src-chip">Uphill Athlete · Volume Taper</span></div>
@@ -1109,6 +1125,7 @@ textarea.form-input{resize:vertical;min-height:60px;font-family:'Lora',serif;fon
     <!-- GYM PEAK -->
     <div class="wk-phase-panel" id="gym-peak" style="display:none">
       <div class="coach"><strong>Peak Phase Gym:</strong> 45–50 minutes max. 2 heavy sets per compound. You are maintaining, not building. Never max-out before a big weekend event. Pull-ups and wall sit hold — they are year-round non-negotiables.</div>
+      <div class="warmup-block"><div class="warmup-title">&#8679; Warm-Up &mdash; Peak Phase / Gym</div><div class="wu-row"><span class="wu-move">Row Erg</span><span class="wu-vol">3 min easy</span></div><div class="wu-row"><span class="wu-move">Leg Swing &mdash; front/back + lateral</span><span class="wu-vol">8 each</span></div><div class="wu-row"><span class="wu-move">Hip Circle</span><span class="wu-vol">8 each</span></div><div class="wu-row"><span class="wu-move">Empty Bar Back Squat &mdash; warm-up set</span><span class="wu-vol">10 reps</span></div><div class="wu-row"><span class="wu-move">Scapular Pull-Up</span><span class="wu-vol">8 reps</span></div><div class="wu-row"><span class="wu-move">Single-Leg Balance</span><span class="wu-vol">15s each</span></div></div>
 
       <div class="ex-group">
         <div class="ex-group-title">Wednesday — Maintenance: Heavy + Brief <span class="src-chip">Uphill Athlete · Peak Taper</span></div>
@@ -1132,6 +1149,7 @@ textarea.form-input{resize:vertical;min-height:60px;font-family:'Lora',serif;fon
     <!-- GYM SKI -->
     <div class="wk-phase-panel" id="gym-ski" style="display:none">
       <div class="coach"><strong>Ski Transition Max Strength:</strong> This is the highest-load phase of the year. Uphill Athlete prescribes 4–6 weeks of true max strength (85–95% 1RM, 3–5 reps, 3 min rest). Back squat, trap bar deadlift, single-leg RDL, weighted pull-ups, overhead press. Build the engine completely before the season starts — you cannot get ski-fit by skiing alone.</div>
+      <div class="warmup-block"><div class="warmup-title">&#8679; Warm-Up &mdash; Ski Transition / Gym</div><div class="wu-row"><span class="wu-move">Assault Bike</span><span class="wu-vol">4 min &mdash; last 60s moderate</span></div><div class="wu-row"><span class="wu-move">Lateral Shuffle</span><span class="wu-vol">20m x 3</span></div><div class="wu-row"><span class="wu-move">Leg Swing &mdash; front/back + lateral</span><span class="wu-vol">12 each</span></div><div class="wu-row"><span class="wu-move">Hip 90/90 Switch + Hip Circle</span><span class="wu-vol">8 each</span></div><div class="wu-row"><span class="wu-move">Goblet Squat &mdash; explosive</span><span class="wu-vol">8 reps</span></div><div class="wu-row"><span class="wu-move">Box Jump &mdash; activation</span><span class="wu-vol">5 reps</span></div><div class="wu-row"><span class="wu-move">Band Pull-Apart</span><span class="wu-vol">15 reps</span></div><div class="wu-row"><span class="wu-move">Single-Leg Balance &mdash; eyes closed on pad</span><span class="wu-vol">30s each</span></div></div>
 
       <div class="ex-group">
         <div class="ex-group-title">A — Max Strength Lower: Sep 13 → Oct 25 <span class="src-chip">Uphill Athlete · Max Strength Protocol</span></div>
