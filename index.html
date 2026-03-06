@@ -136,7 +136,32 @@ body::after{content:'';position:fixed;inset:0;opacity:.035;pointer-events:none;z
 .cal-day.phase-build{border-top:2px solid var(--build)}
 .cal-day.phase-peak{border-top:2px solid var(--peak)}
 .cal-day.phase-ski{border-top:2px solid var(--ski)}
-@media(max-width:600px){.cal-day{min-height:52px}.cal-metrics{display:none}}
+@media(max-width:600px){
+  .wrap{padding:40px 8px 400px}
+  .cal-grid{gap:2px}
+  .cal-dow{font-size:7px;letter-spacing:.5px;padding:3px 0}
+  .cal-day{min-height:44px;padding:4px 4px;border-radius:2px}
+  .cal-num{font-size:9px;margin-bottom:2px}
+  .cal-type{font-size:7px;letter-spacing:.3px}
+  .cal-planned{font-size:7px;letter-spacing:.3px}
+  .cal-badge{font-size:6px;padding:1px 3px;margin-top:2px}
+  .cal-check{width:12px;height:12px;font-size:7px;margin-bottom:2px}
+  .cal-metrics{display:none}
+  .totals-ring{gap:8px;padding:10px 12px}
+  .ring-item{min-width:52px}
+  .ring-val{font-size:20px}
+  .month-nav{gap:6px}
+  .month-title-big{font-size:18px}
+}
+@media(max-width:400px){
+  .cal-grid{gap:1px}
+  .cal-day{min-height:36px;padding:3px 3px}
+  .cal-num{font-size:8px}
+  .cal-type,.cal-planned,.cal-badge{display:none}
+  .totals-ring{gap:6px;padding:8px 10px}
+  .ring-item{min-width:42px}
+  .ring-label{font-size:7px}
+}
 
 /* ── WORKOUT TOGGLE ── */
 .mode-toggle{display:flex;background:var(--raised);border:1px solid var(--border);border-radius:6px;padding:3px;gap:3px;width:fit-content;margin-bottom:20px}
@@ -1476,15 +1501,99 @@ function getPhaseForDate(dateStr) {
   return null;
 }
 
-// ── STORAGE ────────────────────────────────────────────
-function loadLogs() {
+// ── SUPABASE CONFIG ────────────────────────────────────
+const SB_URL  = 'https://plumdogyyoctxqvcpimz.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsdW1kb2d5eW9jdHhxdmNwaW16Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MTc4MzIsImV4cCI6MjA4ODM5MzgzMn0.Jky6xqn13zcTgNd8k9I2hJvSkLtYWvCk4uf38nC8Xag';
+
+async function sbFetch(method, path, body) {
+  const res = await fetch(SB_URL + path, {
+    method,
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'resolution=merge-duplicates,return=minimal' : ''
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(t); }
+  return method === 'GET' ? res.json() : null;
+}
+
+// ── STORAGE (Supabase + localStorage cache) ────────────
+function cacheSet(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+function cacheGet() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    logs = raw ? JSON.parse(raw) : {};
-  } catch(e) { logs = {}; }
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
 }
-function saveLogs() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+
+function showSyncStatus(msg, ok) {
+  let el = document.getElementById('sync-status');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sync-status';
+    el.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:9999;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;padding:6px 12px;border-radius:3px;transition:opacity .5s;pointer-events:none';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.background = ok ? 'rgba(74,136,56,.9)' : 'rgba(192,80,48,.9)';
+  el.style.color = '#fff';
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; }, 2500);
+}
+
+async function loadLogs() {
+  // 1. Load from cache immediately so the UI is instant
+  const cached = cacheGet();
+  if (cached) { logs = cached; renderCalendar(); updateDashStats(); }
+
+  // 2. Then pull fresh data from Supabase in the background
+  try {
+    const rows = await sbFetch('GET', '/rest/v1/workouts?select=date,data&order=date.asc&limit=2000');
+    const remote = {};
+    rows.forEach(r => { remote[r.date] = r.data; });
+    // Merge: remote wins for any date that exists remotely
+    logs = Object.assign({}, logs, remote);
+    cacheSet(logs);
+    renderCalendar();
+    updateDashStats();
+    showSyncStatus('✓ synced', true);
+  } catch(e) {
+    showSyncStatus('offline — local only', false);
+    console.warn('Supabase load failed:', e);
+  }
+}
+
+async function saveLogs() {
+  cacheSet(logs);  // Always write cache instantly
+  if (!currentModalDate) return;
+  const entry = logs[currentModalDate];
+  if (!entry) return;
+  try {
+    await sbFetch('POST', '/rest/v1/workouts', {
+      date: currentModalDate,
+      data: entry,
+      updated_at: new Date().toISOString()
+    });
+    showSyncStatus('✓ saved', true);
+  } catch(e) {
+    showSyncStatus('saved locally', false);
+    console.warn('Supabase save failed:', e);
+  }
+}
+
+async function deleteLogRemote(dateStr) {
+  cacheSet(logs);
+  try {
+    await sbFetch('DELETE', `/rest/v1/workouts?date=eq.${dateStr}`);
+  } catch(e) {
+    console.warn('Supabase delete failed:', e);
+  }
 }
 
 // ── DATE HELPERS ───────────────────────────────────────
@@ -1912,8 +2021,10 @@ function saveLog() {
 function deleteLog() {
   if (!currentModalDate) return;
   if (confirm('Delete this log entry?')) {
-    delete logs[currentModalDate];
-    saveLogs();
+    const dateToDelete = currentModalDate;
+    delete logs[dateToDelete];
+    cacheSet(logs);
+    deleteLogRemote(dateToDelete);
     closeModal();
     renderCalendar();
     updateDashStats();
@@ -1943,17 +2054,22 @@ window.addEventListener('scroll', () => {
 const PRELOADED_LOGS = {"2026-01-01": {"completed": true, "type": "Ski Day", "duration": "148", "distance": "", "elevation": "", "avghr": "", "maxhr": "", "tss": "740", "rpe": 5, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "8.8", "hrv": "74", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-02": {"completed": false, "type": "", "duration": "", "distance": "", "elevation": "", "avghr": "", "maxhr": "", "tss": "", "rpe": null, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "9.8", "hrv": "11", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-03": {"completed": true, "type": "Ski Day", "duration": "28", "distance": "", "elevation": "", "avghr": "", "maxhr": "", "tss": "112", "rpe": 4, "z1": "14", "z2": "4", "z3": "", "z4": "", "z5": "", "sleep": "7.8", "hrv": "156", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-04": {"completed": true, "type": "Z2 Uphill Ski", "duration": "57", "distance": "1.5", "elevation": "969", "avghr": "", "maxhr": "", "tss": "114", "rpe": 2, "z1": "1", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "8.1", "hrv": "142", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-05": {"completed": true, "type": "Z2 Hike", "duration": "34", "distance": "2.39", "elevation": "255", "avghr": "", "maxhr": "", "tss": "34", "rpe": 1, "z1": "5", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "8.2", "hrv": "143", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-06": {"completed": true, "type": "Strength", "duration": "71", "distance": "", "elevation": "", "avghr": "", "maxhr": "", "tss": "497", "rpe": 7, "z1": "48", "z2": "13", "z3": "7", "z4": "", "z5": "", "sleep": "7.5", "hrv": "157", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-07": {"completed": true, "type": "Z2 Uphill Ski", "duration": "75", "distance": "4.83", "elevation": "2039", "avghr": "151", "maxhr": "171", "tss": "452", "rpe": 6, "z1": "6", "z2": "43", "z3": "15", "z4": "", "z5": "", "sleep": "7.7", "hrv": "124", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-08": {"completed": true, "type": "Z2 Uphill Ski", "duration": "84", "distance": "4.71", "elevation": "2001", "avghr": "135", "maxhr": "163", "tss": "508", "rpe": 6, "z1": "36", "z2": "42", "z3": "12", "z4": "", "z5": "", "sleep": "6.5", "hrv": "73", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-09": {"completed": true, "type": "Ski Day", "duration": "163", "distance": "7.3", "elevation": "", "avghr": "122", "maxhr": "168", "tss": "652", "rpe": 4, "z1": "68", "z2": "40", "z3": "20", "z4": "1", "z5": "", "sleep": "7.9", "hrv": "133", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-10": {"completed": true, "type": "Ski Day", "duration": "299", "distance": "", "elevation": "", "avghr": "99", "maxhr": "111", "tss": "598", "rpe": 2, "z1": "1", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "7.3", "hrv": "117", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-11": {"completed": true, "type": "Z2 Hike", "duration": "40", "distance": "1.73", "elevation": "245", "avghr": "", "maxhr": "", "tss": "40", "rpe": 1, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "9.0", "hrv": "119", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-12": {"completed": true, "type": "Z2 Hike", "duration": "44", "distance": "2.24", "elevation": "329", "avghr": "95", "maxhr": "117", "tss": "44", "rpe": 1, "z1": "4", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "8.3", "hrv": "143", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-13": {"completed": true, "type": "Z2 Uphill Ski", "duration": "86", "distance": "4.73", "elevation": "1999", "avghr": "136", "maxhr": "159", "tss": "518", "rpe": 6, "z1": "23", "z2": "35", "z3": "23", "z4": "", "z5": "", "sleep": "7.6", "hrv": "130", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-14": {"completed": true, "type": "Z2 Uphill Ski", "duration": "103", "distance": "5.78", "elevation": "2342", "avghr": "140", "maxhr": "156", "tss": "721", "rpe": 7, "z1": "25", "z2": "46", "z3": "28", "z4": "", "z5": "", "sleep": "8.0", "hrv": "126", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-15": {"completed": true, "type": "Z2 Uphill Ski", "duration": "114", "distance": "6.32", "elevation": "2752", "avghr": "137", "maxhr": "154", "tss": "687", "rpe": 6, "z1": "38", "z2": "55", "z3": "16", "z4": "", "z5": "", "sleep": "8.0", "hrv": "107", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-16": {"completed": false, "type": "", "duration": "", "distance": "", "elevation": "", "avghr": "", "maxhr": "", "tss": "", "rpe": null, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "8.2", "hrv": "109", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-17": {"completed": true, "type": "Ski Day", "duration": "283", "distance": "10.8", "elevation": "", "avghr": "101", "maxhr": "165", "tss": "1134", "rpe": 4, "z1": "61", "z2": "11", "z3": "2", "z4": "", "z5": "", "sleep": "9.2", "hrv": "84", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-18": {"completed": false, "type": "", "duration": "", "distance": "", "elevation": "", "avghr": "", "maxhr": "", "tss": "", "rpe": null, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "7.9", "hrv": "62", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-19": {"completed": true, "type": "Z2 Hike", "duration": "22", "distance": "0.97", "elevation": "157", "avghr": "100", "maxhr": "118", "tss": "22", "rpe": 1, "z1": "4", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "9.3", "hrv": "136", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-20": {"completed": true, "type": "Strength", "duration": "41", "distance": "", "elevation": "", "avghr": "113", "maxhr": "157", "tss": "252", "rpe": 6, "z1": "16", "z2": "3", "z3": "3", "z4": "", "z5": "", "sleep": "7.5", "hrv": "139", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-21": {"completed": true, "type": "Z2 Uphill Ski", "duration": "121", "distance": "6.41", "elevation": "2770", "avghr": "135", "maxhr": "157", "tss": "849", "rpe": 7, "z1": "40", "z2": "57", "z3": "20", "z4": "", "z5": "", "sleep": "7.4", "hrv": "118", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-22": {"completed": true, "type": "Z2 Uphill Ski", "duration": "82", "distance": "4.73", "elevation": "2007", "avghr": "146", "maxhr": "169", "tss": "498", "rpe": 6, "z1": "11", "z2": "24", "z3": "29", "z4": "15", "z5": "", "sleep": "6.9", "hrv": "96", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-23": {"completed": true, "type": "Strength", "duration": "54", "distance": "", "elevation": "", "avghr": "98", "maxhr": "129", "tss": "271", "rpe": 5, "z1": "23", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "8.7", "hrv": "124", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-24": {"completed": false, "type": "", "duration": "", "distance": "", "elevation": "", "avghr": "", "maxhr": "", "tss": "", "rpe": null, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "8.2", "hrv": "77", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-25": {"completed": true, "type": "Strength", "duration": "69", "distance": "", "elevation": "", "avghr": "107", "maxhr": "148", "tss": "489", "rpe": 7, "z1": "23", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "9.2", "hrv": "127", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-26": {"completed": false, "type": "", "duration": "", "distance": "", "elevation": "", "avghr": "", "maxhr": "", "tss": "", "rpe": null, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "9.2", "hrv": "126", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-27": {"completed": true, "type": "Strength", "duration": "54", "distance": "", "elevation": "", "avghr": "130", "maxhr": "167", "tss": "326", "rpe": 6, "z1": "31", "z2": "12", "z3": "8", "z4": "1", "z5": "", "sleep": "6.4", "hrv": "101", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-28": {"completed": true, "type": "Z2 Uphill Ski", "duration": "121", "distance": "6.18", "elevation": "2761", "avghr": "139", "maxhr": "170", "tss": "847", "rpe": 7, "z1": "21", "z2": "72", "z3": "21", "z4": "1", "z5": "", "sleep": "7.8", "hrv": "109", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-29": {"completed": true, "type": "Z2 Uphill Ski", "duration": "87", "distance": "4.93", "elevation": "2008", "avghr": "143", "maxhr": "175", "tss": "526", "rpe": 6, "z1": "16", "z2": "34", "z3": "20", "z4": "12", "z5": "", "sleep": "7.9", "hrv": "113", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-30": {"completed": true, "type": "Z2 Uphill Ski", "duration": "70", "distance": "3.28", "elevation": "1255", "avghr": "115", "maxhr": "144", "tss": "213", "rpe": 3, "z1": "59", "z2": "3", "z3": "", "z4": "", "z5": "", "sleep": "7.8", "hrv": "104", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-01-31": {"completed": true, "type": "Ski Day", "duration": "225", "distance": "19.0", "elevation": "", "avghr": "110", "maxhr": "170", "tss": "904", "rpe": 4, "z1": "79", "z2": "19", "z3": "16", "z4": "3", "z5": "", "sleep": "7.3", "hrv": "117", "notes": "", "nutrition": "", "packweight": "", "calories": "", "rhr": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-01": {"completed": true, "type": "Ski Day", "duration": "283", "distance": "18.4", "elevation": "", "avghr": "96", "maxhr": "153", "tss": "1419", "rpe": 5, "z1": "48", "z2": "14", "z3": "1", "z4": "", "z5": "", "sleep": "8.4", "hrv": "96", "rhr": "45", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-02": {"completed": false, "type": "", "duration": "", "distance": "", "elevation": "", "avghr": "", "maxhr": "", "tss": "", "rpe": null, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "8.3", "hrv": "100", "rhr": "48", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-03": {"completed": true, "type": "Strength", "duration": "58", "distance": "", "elevation": "", "avghr": "114", "maxhr": "164", "tss": "411", "rpe": 7, "z1": "22", "z2": "9", "z3": "2", "z4": "1", "z5": "", "sleep": "7.7", "hrv": "137", "rhr": "45", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-04": {"completed": true, "type": "Z2 Uphill Ski", "duration": "108", "distance": "6.15", "elevation": "2760", "avghr": "140", "maxhr": "158", "tss": "757", "rpe": 7, "z1": "14", "z2": "49", "z3": "40", "z4": "", "z5": "", "sleep": "7.7", "hrv": "112", "rhr": "48", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-05": {"completed": true, "type": "Z2 Uphill Ski", "duration": "51", "distance": "3.38", "elevation": "1252", "avghr": "147", "maxhr": "169", "tss": "408", "rpe": 8, "z1": "7", "z2": "21", "z3": "10", "z4": "", "z5": "", "sleep": "7.7", "hrv": "111", "rhr": "52", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-06": {"completed": true, "type": "Z2 Hike", "duration": "34", "distance": "1.59", "elevation": "218", "avghr": "97", "maxhr": "113", "tss": "", "rpe": 2, "z1": "6", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "8.2", "hrv": "71", "rhr": "58", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-07": {"completed": true, "type": "Ski Day", "duration": "229", "distance": "10.1", "elevation": "", "avghr": "104", "maxhr": "154", "tss": "1146", "rpe": 5, "z1": "47", "z2": "9", "z3": "", "z4": "", "z5": "", "sleep": "8.2", "hrv": "71", "rhr": "58", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-08": {"completed": true, "type": "Ski Day", "duration": "131", "distance": "21", "elevation": "", "avghr": "106", "maxhr": "152", "tss": "396", "rpe": 3, "z1": "9", "z2": "4", "z3": "", "z4": "", "z5": "", "sleep": "7.7", "hrv": "110", "rhr": "52", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-09": {"completed": true, "type": "Active Recovery", "duration": "32", "distance": "", "elevation": "", "avghr": "70", "maxhr": "90", "tss": "64", "rpe": 2, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "9.4", "hrv": "112", "rhr": "51", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-10": {"completed": true, "type": "Active Recovery", "duration": "31", "distance": "", "elevation": "", "avghr": "87", "maxhr": "114", "tss": "158", "rpe": 5, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "8.8", "hrv": "88", "rhr": "48", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-11": {"completed": true, "type": "Z2 Uphill Ski", "duration": "85", "distance": "4.7", "elevation": "2005", "avghr": "137", "maxhr": "165", "tss": "513", "rpe": 6, "z1": "20", "z2": "35", "z3": "", "z4": "", "z5": "", "sleep": "8.0", "hrv": "102", "rhr": "50", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-12": {"completed": true, "type": "Z2 Uphill Ski", "duration": "83", "distance": "4.7", "elevation": "2005", "avghr": "140", "maxhr": "157", "tss": "501", "rpe": 6, "z1": "14", "z2": "55", "z3": "", "z4": "", "z5": "", "sleep": "7.4", "hrv": "103", "rhr": "50", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-13": {"completed": true, "type": "Z2 Uphill Ski", "duration": "40", "distance": "3.17", "elevation": "1251", "avghr": "148", "maxhr": "175", "tss": "367", "rpe": 9, "z1": "4", "z2": "12", "z3": "12", "z4": "", "z5": "", "sleep": "7.8", "hrv": "101", "rhr": "51", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-14": {"completed": true, "type": "Ski Day", "duration": "329", "distance": "13.3", "elevation": "", "avghr": "111", "maxhr": "167", "tss": "2307", "rpe": 7, "z1": "101", "z2": "53", "z3": "11", "z4": "1", "z5": "", "sleep": "8.7", "hrv": "76", "rhr": "56", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-15": {"completed": true, "type": "Ski Day", "duration": "153", "distance": "9.7", "elevation": "", "avghr": "95", "maxhr": "121", "tss": "919", "rpe": 6, "z1": "10", "z2": "49", "z3": "10", "z4": "", "z5": "", "sleep": "8.8", "hrv": "92", "rhr": "56", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-16": {"completed": true, "type": "Active Recovery", "duration": "11", "distance": "", "elevation": "", "avghr": "66", "maxhr": "80", "tss": "22", "rpe": 2, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "9.9", "hrv": "118", "rhr": "49", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-17": {"completed": true, "type": "Strength", "duration": "115", "distance": "", "elevation": "", "avghr": "", "maxhr": "154", "tss": "531", "rpe": 5, "z1": "46", "z2": "20", "z3": "6", "z4": "", "z5": "", "sleep": "9.4", "hrv": "125", "rhr": "46", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-18": {"completed": true, "type": "Z2 Uphill Ski", "duration": "88", "distance": "4.67", "elevation": "2040", "avghr": "142", "maxhr": "155", "tss": "710", "rpe": 8, "z1": "22", "z2": "54", "z3": "20", "z4": "", "z5": "", "sleep": "7.9", "hrv": "107", "rhr": "47", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-19": {"completed": true, "type": "Ski Day", "duration": "162", "distance": "11.1", "elevation": "", "avghr": "135", "maxhr": "180", "tss": "1146", "rpe": 7, "z1": "92", "z2": "3", "z3": "", "z4": "", "z5": "", "sleep": "7.7", "hrv": "93", "rhr": "50", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-20": {"completed": false, "type": "", "duration": "", "distance": "", "elevation": "", "avghr": "", "maxhr": "", "tss": "", "rpe": null, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "8.8", "hrv": "78", "rhr": "55", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-21": {"completed": true, "type": "Z2 Nordic Ski", "duration": "64", "distance": "6.73", "elevation": "522", "avghr": "134", "maxhr": "171", "tss": "257", "rpe": 4, "z1": "41", "z2": "29", "z3": "11", "z4": "4", "z5": "", "sleep": "6.0", "hrv": "123", "rhr": "47", "notes": "What a spectacular day", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-22": {"completed": true, "type": "Active Recovery", "duration": "30", "distance": "", "elevation": "", "avghr": "69", "maxhr": "85", "tss": "31", "rpe": 1, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "9.2", "hrv": "107", "rhr": "49", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-23": {"completed": false, "type": "", "duration": "", "distance": "", "elevation": "", "avghr": "", "maxhr": "", "tss": "", "rpe": null, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "9.2", "hrv": "126", "rhr": "47", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-24": {"completed": true, "type": "Z2 Nordic Ski", "duration": "94", "distance": "10.11", "elevation": "881", "avghr": "142", "maxhr": "167", "tss": "758", "rpe": 8, "z1": "18", "z2": "38", "z3": "26", "z4": "6", "z5": "", "sleep": "7.6", "hrv": "128", "rhr": "49", "notes": "Watermelon GU @ 1:00. Maybe the last day of Round Valley", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-25": {"completed": true, "type": "Strength", "duration": "78", "distance": "", "elevation": "", "avghr": "112", "maxhr": "148", "tss": "631", "rpe": 8, "z1": "54", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "8.3", "hrv": "129", "rhr": "49", "notes": "Water and Coffee", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-26": {"completed": true, "type": "Z2 Uphill Ski", "duration": "65", "distance": "3.33", "elevation": "1250", "avghr": "120", "maxhr": "139", "tss": "198", "rpe": 3, "z1": "58", "z2": "6", "z3": "", "z4": "", "z5": "", "sleep": "7.7", "hrv": "136", "rhr": "47", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-27": {"completed": true, "type": "Z2 Nordic Ski", "duration": "92", "distance": "8.17", "elevation": "1312", "avghr": "139", "maxhr": "166", "tss": "647", "rpe": 7, "z1": "37", "z2": "33", "z3": "21", "z4": "14", "z5": "", "sleep": "7.7", "hrv": "133", "rhr": "45", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}, "2026-02-28": {"completed": false, "type": "", "duration": "", "distance": "", "elevation": "", "avghr": "", "maxhr": "", "tss": "", "rpe": null, "z1": "", "z2": "", "z3": "", "z4": "", "z5": "", "sleep": "7.6", "hrv": "74", "rhr": "59", "notes": "", "nutrition": "", "packweight": "", "calories": "", "sleepq": "", "weight": "", "soreness": ""}};
 
 // ── INIT ─────────────────────────────────────────────
-loadLogs();
-// Merge preloaded historical data (don't overwrite user entries)
-Object.entries(PRELOADED_LOGS).forEach(([date, entry]) => {
-  if (!logs[date]) logs[date] = entry;
-});
-saveLogs();
-const now = new Date();
-currentYear = now.getFullYear();
-currentMonth = now.getMonth();
-renderCalendar();
-updateDashStats();
+(async () => {
+  // Seed preloaded historical data into cache if not already there
+  const cached = cacheGet() || {};
+  let needsSeed = false;
+  Object.entries(PRELOADED_LOGS).forEach(([date, entry]) => {
+    if (!cached[date]) { cached[date] = entry; needsSeed = true; }
+  });
+  if (needsSeed) cacheSet(cached);
+
+  const now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth();
+
+  // loadLogs handles cache-first render + background Supabase sync
+  await loadLogs();
+})();
 
 // ── WORKOUT PHASE TABS ──────────────────────────────────
 function setWkPhase(phase) {
